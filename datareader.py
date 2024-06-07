@@ -59,7 +59,9 @@ class YcbineoatReader:
     self.video_dir = video_dir
     self.downscale = downscale
     self.zfar = zfar
-    self.color_files = sorted(glob.glob(f"{self.video_dir}/rgb/*.png"))
+    ## For my custom data
+    # self.color_files = sorted(glob.glob(f"{self.video_dir}/rgb/*.png"), key= lambda f: int(os.path.splitext(os.path.basename(f)[0].split('_')[-1])))
+    self.color_files = sorted(glob.glob(f"{self.video_dir}/rgb/*.png"), key= lambda f: int(''.join(filter(str.isdigit, os.path.basename(f)))))
     self.K = np.loadtxt(f'{video_dir}/cam_K.txt').reshape(3,3)
     self.id_strs = []
     for color_file in self.color_files:
@@ -110,7 +112,7 @@ class YcbineoatReader:
     return color
 
   def get_mask(self,i):
-    mask = cv2.imread(self.color_files[i].replace('rgb','masks'),-1)
+    mask = cv2.imread(self.color_files[i].replace('rgb/image','masks/mask_image'),-1)
     if len(mask.shape)==3:
       for c in range(3):
         if mask[...,c].sum()>0:

@@ -294,12 +294,13 @@ class FoundationPose:
       cv2.imwrite(f'{self.debug_dir}/ob_mask.png', (ob_mask*255.0).clip(0,255))
 
     normal_map = None
-    valid = (depth>=0.1) & (ob_mask>0)
-    if valid.sum()<4:
-      logging.info(f'valid too small, return')
-      pose = np.eye(4)
-      pose[:3,3] = self.guess_translation(depth=depth, mask=ob_mask, K=K)
-      return pose
+    # valid = (depth>=0.1) & (ob_mask>0)
+    valid = (depth>=0.1)
+    # if valid.sum()<4:
+    #   logging.info(f'valid too small, return')
+    #   pose = np.eye(4)
+    #   pose[:3,3] = self.guess_translation(depth=depth, mask=ob_mask, K=K)
+    #   return pose
 
     if self.debug>=2:
       imageio.imwrite(f'{self.debug_dir}/color.png', rgb)
@@ -328,7 +329,8 @@ class FoundationPose:
     if first:
       poses, vis = self.refiner.predict(mesh=self.mesh, mesh_tensors=self.mesh_tensors, rgb=rgb, depth=depth, K=K, ob_in_cams=poses.data.cpu().numpy(), normal_map=normal_map, xyz_map=xyz_map, glctx=self.glctx, mesh_diameter=self.diameter, iteration=iteration, get_vis=self.debug>=2)
     else:
-      self.refiner.predict(mesh=self.mesh, mesh_tensors=self.mesh_tensors, rgb=rgb, depth=depth, K=K, ob_in_cams=self.pose_last.reshape(1,4,4).data.cpu().numpy(), normal_map=None, xyz_map=xyz_map, mesh_diameter=self.diameter, glctx=self.glctx, iteration=iteration, get_vis=self.debug>=2)
+      # xyz_map = depth2xyzmap_batch(depth[None], torch.as_tensor(K, dtype=torch.float, device='cuda')[None], zfar=np.inf)[0]
+      poses, vis = self.refiner.predict(mesh=self.mesh, mesh_tensors=self.mesh_tensors, rgb=rgb, depth=depth, K=K, ob_in_cams=self.pose_last.reshape(1,4,4).data.cpu().numpy(), normal_map=None, xyz_map=xyz_map, mesh_diameter=self.diameter, glctx=self.glctx, iteration=iteration, get_vis=self.debug>=2)
     
     if vis is not None:
       imageio.imwrite(f'{self.debug_dir}/vis_refiner.png', vis)

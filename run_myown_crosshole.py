@@ -11,6 +11,7 @@ from estimater import *
 from datareader import *
 import argparse
 import os
+import cv2
 
 
 if __name__=='__main__':
@@ -27,8 +28,8 @@ if __name__=='__main__':
   set_logging_format()
   set_seed(0)
 
-  mesh_file = "/home/rp/nisara/myFoundationPose/FoundationPose/demo_data/hex_hole/mesh/hex_hole.obj"
-  test_scene_dir = "/home/rp/nisara/myFoundationPose/FoundationPose/demo_data/hex_hole"
+  mesh_file = "/home/rp/nisara/myFoundationPose/FoundationPose/demo_data/cross_hole/mesh/cross_hole.obj"
+  test_scene_dir = "/home/rp/nisara/myFoundationPose/FoundationPose/demo_data/cross_hole"
 
   mesh = trimesh.load(mesh_file)
 
@@ -47,6 +48,12 @@ if __name__=='__main__':
 
   reader = YcbineoatReader(video_dir=test_scene_dir, shorter_side=None, zfar=np.inf)
 
+  ## Save the video
+  img = cv2.imread(reader.color_files[0])
+  height, width, channels = img.shape
+  fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+  out = cv2.VideoWriter('output4.mp4', fourcc, 30.0, (width, height))
+
   for i in range(len(reader.color_files)):
     logging.info(f'i:{i}')
     color = reader.get_color(i)
@@ -56,7 +63,7 @@ if __name__=='__main__':
       first = True
     else:
       first = False
-    mask = reader.get_mask(i).astype(bool)
+    mask = reader.get_mask(0).astype(bool)
     pose = est.calculatePoseEachTime(K=reader.K, rgb=color, depth=depth, ob_mask=mask, first=first, iteration=args.est_refine_iter)
 
     if debug>=3:
@@ -72,7 +79,8 @@ if __name__=='__main__':
     np.savetxt(f'{debug_dir}/ob_in_cam/{reader.id_strs[i]}.txt', pose.reshape(4,4))
 
     if debug>=1:
-      center_pose = pose@np.linalg.inv(to_origin)
+      # center_pose = pose@np.linalg.inv(to_origin)
+      center_pose = pose
       vis = draw_posed_3d_box(reader.K, img=color, ob_in_cam=center_pose, bbox=bbox)
       vis = draw_xyz_axis(color, ob_in_cam=center_pose, scale=0.1, K=reader.K, thickness=3, transparency=0, is_input_rgb=True)
       cv2.imshow('1', vis[...,::-1])
@@ -81,9 +89,10 @@ if __name__=='__main__':
       # dirpath, imagena = os.path.split(filepath)
       # imagename, ext = os.path.splitext(imagena)
       # o_image_path = os.path.join(dirpath + "/poses/", imagename + "_pose" + ext)
-      o_image_path = reader.color_files[i].replace('rgb','poses2')
+      o_image_path = reader.color_files[i].replace('rgb','poses3')
       print(o_image_path)
       cv2.imwrite(o_image_path , vis)
+      out.write(vis)
 
 
     if debug>=2:
